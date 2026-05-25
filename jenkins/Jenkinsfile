@@ -15,9 +15,6 @@ pipeline {
         K8S_NAMESPACE          = 'portfolio'
     }
 
-    tools {
-        nodejs 'NodeJS-20'
-    }
 
     stages {
         stage('Checkout') {
