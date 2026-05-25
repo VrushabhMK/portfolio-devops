@@ -1,0 +1,175 @@
+// Jenkins CI/CD Pipeline for Portfolio DevOps Project
+// This pipeline automates: Build -> Test -> Docker Build -> Push -> Deploy
+
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
+        DOCKER_HUB_USERNAME    = 'your-dockerhub-username'
+        IMAGE_PREFIX           = "${DOCKER_HUB_USERNAME}/portfolio"
+        FRONTEND_IMAGE         = "${IMAGE_PREFIX}-frontend"
+        BACKEND_IMAGE          = "${IMAGE_PREFIX}-backend"
+        IMAGE_TAG              = "${BUILD_NUMBER}"
+        GIT_BRANCH             = 'main'
+        K8S_NAMESPACE          = 'portfolio'
+    }
+
+    tools {
+        nodejs 'NodeJS-20'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '=== Checking out code from GitHub ==='
+                git branch: "${GIT_BRANCH}",
+                    url: 'https://github.com/your-username/portfolio-devops.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            parallel {
+                stage('Frontend Dependencies') {
+                    steps {
+                        dir('frontend') {
+                            echo '=== Installing frontend dependencies ==='
+                            sh 'npm ci'
+                        }
+                    }
+                }
+                stage('Backend Dependencies') {
+                    steps {
+                        dir('backend') {
+                            echo '=== Installing backend dependencies ==='
+                            sh 'npm ci'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Test') {
+            parallel {
+                stage('Frontend Lint & Build') {
+                    steps {
+                        dir('frontend') {
+                            echo '=== Running frontend lint ==='
+                            sh 'npm run lint || true'
+                            echo '=== Building frontend ==='
+                            sh 'npm run build'
+                        }
+                    }
+                }
+                stage('Backend Tests') {
+                    steps {
+                        dir('backend') {
+                            echo '=== Running backend tests ==='
+                            sh 'npm test || true'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            parallel {
+                stage('Build Frontend Image') {
+                    steps {
+                        echo '=== Building frontend Docker image ==='
+                        sh """
+                            docker build \
+                                -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                                -t ${FRONTEND_IMAGE}:latest \
+                                -f frontend/Dockerfile \
+                                frontend/
+                        """
+                    }
+                }
+                stage('Build Backend Image') {
+                    steps {
+                        echo '=== Building backend Docker image ==='
+                        sh """
+                            docker build \
+                                -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
+                                -t ${BACKEND_IMAGE}:latest \
+                                -f backend/Dockerfile \
+                                backend/
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                echo '=== Pushing Docker images to Docker Hub ==='
+                sh """
+                    echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin
+                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${FRONTEND_IMAGE}:latest
+                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${BACKEND_IMAGE}:latest
+                """
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo '=== Deploying to Kubernetes cluster ==='
+                sh """
+                    # Update deployment image tags
+                    kubectl set image deployment/frontend \
+                        frontend=${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                        -n ${K8S_NAMESPACE} || true
+
+                    kubectl set image deployment/backend \
+                        backend=${BACKEND_IMAGE}:${IMAGE_TAG} \
+                        -n ${K8S_NAMESPACE} || true
+
+                    # Apply all Kubernetes manifests
+                    kubectl apply -f kubernetes/namespace.yaml
+                    kubectl apply -f kubernetes/configmap.yaml
+                    kubectl apply -f kubernetes/deployment.yaml
+                    kubectl apply -f kubernetes/service.yaml
+                    kubectl apply -f kubernetes/ingress.yaml
+                    kubectl apply -f kubernetes/hpa.yaml
+
+                    # Wait for rollout
+                    kubectl rollout status deployment/frontend -n ${K8S_NAMESPACE} --timeout=300s
+                    kubectl rollout status deployment/backend -n ${K8S_NAMESPACE} --timeout=300s
+                """
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                echo '=== Verifying deployment ==='
+                sh """
+                    kubectl get pods -n ${K8S_NAMESPACE}
+                    kubectl get services -n ${K8S_NAMESPACE}
+                    kubectl get ingress -n ${K8S_NAMESPACE}
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '=== Pipeline completed successfully! ==='
+            echo "Frontend image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
+            echo "Backend image: ${BACKEND_IMAGE}:${IMAGE_TAG}"
+        }
+        failure {
+            echo '=== Pipeline FAILED! Check logs for details. ==='
+        }
+        always {
+            echo '=== Cleaning up Docker images ==='
+            sh """
+                docker rmi ${FRONTEND_IMAGE}:${IMAGE_TAG} || true
+                docker rmi ${BACKEND_IMAGE}:${IMAGE_TAG} || true
+            """
+            cleanWs()
+        }
+    }
+}

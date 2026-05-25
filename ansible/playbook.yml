@@ -1,0 +1,31 @@
+---
+# Main playbook - Configures EC2 instances with Docker, Kubernetes, and Jenkins
+- name: Configure Portfolio DevOps Infrastructure
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  vars_files:
+    - group_vars/all.yml
+
+  roles:
+    - docker
+    - kubernetes
+    - jenkins
+
+  post_tasks:
+    - name: Verify Docker installation
+      command: docker --version
+      changed_when: false
+      register: docker_version
+
+    - name: Verify kubectl installation
+      command: kubectl version --client
+      changed_when: false
+      register: kubectl_version
+
+    - name: Display installed versions
+      debug:
+        msg:
+          - "Docker: {{ docker_version.stdout }}"
+          - "kubectl: {{ kubectl_version.stdout }}"

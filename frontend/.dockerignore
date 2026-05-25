@@ -1,0 +1,17 @@
+backend/
+docker/
+kubernetes/
+terraform/
+ansible/
+jenkins/
+monitoring/
+README.md
+.git
+.gitignore
+demo.sh
+demo.bat
+docker-compose.yml
+frontend/node_modules
+frontend/dist
+frontend/.env
+frontend/.env.local

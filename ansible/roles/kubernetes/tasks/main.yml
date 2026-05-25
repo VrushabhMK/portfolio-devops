@@ -1,0 +1,38 @@
+---
+# Kubernetes tools installation role
+- name: Install Kubernetes tools
+  block:
+    - name: Install prerequisites for Kubernetes
+      apt:
+        name:
+          - conntrack
+          - socat
+        state: present
+
+    - name: Download kubectl
+      get_url:
+        url: "https://dl.k8s.io/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+
+    - name: Download minikube
+      get_url:
+        url: "https://storage.googleapis.com/minikube/releases/v{{ minikube_version }}/minikube-linux-amd64"
+        dest: /usr/local/bin/minikube
+        mode: '0755'
+
+    - name: Start minikube
+      become_user: ubuntu
+      shell: minikube start --driver=docker --cpus=2 --memory=4096
+      args:
+        creates: /home/ubuntu/.minikube
+
+    - name: Enable minikube addons
+      become_user: ubuntu
+      shell: minikube addons enable metrics-server && minikube addons enable ingress
+      ignore_errors: yes
+
+    - name: Create portfolio namespace
+      become_user: ubuntu
+      shell: kubectl apply -f https://raw.githubusercontent.com/your-username/portfolio-devops/main/kubernetes/namespace.yaml || kubectl create namespace portfolio --dry-run=client -o yaml | kubectl apply -f -
+      ignore_errors: yes
