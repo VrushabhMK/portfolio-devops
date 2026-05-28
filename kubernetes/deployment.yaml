@@ -22,8 +22,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: portfolio-devops-frontend:latest
-          imagePullPolicy: Never
+          image: vrushabhm/portfolio-frontend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           resources:
@@ -70,8 +70,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: portfolio-devops-backend:latest
-          imagePullPolicy: Never
+          image: vrushabhm/portfolio-backend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
           envFrom:

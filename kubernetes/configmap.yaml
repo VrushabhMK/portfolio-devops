@@ -7,7 +7,7 @@ type: Opaque
 stringData:
   MONGODB_URI: "mongodb://admin:password123@mongodb:27017/portfolio?authSource=admin"
   MONGODB_PASSWORD: "password123"
-  JWT_SECRET: "production-jwt-secret-change-this"
+  JWT_SECRET: "portfolio-devops-jwt-secret-968138089440"
   JWT_EXPIRE: "7d"
 ---
 apiVersion: v1
@@ -18,4 +18,18 @@ metadata:
 data:
   NODE_ENV: "production"
   PORT: "5000"
-  FRONTEND_URL: "http://portfolio.example.com"
+  FRONTEND_URL: "http://YOUR_EC2_PUBLIC_IP:3000"
+  AWS_REGION: "us-east-1"
+  AWS_S3_BUCKET: "portfolio-devops-artifacts-968138089440"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc
+  namespace: portfolio
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

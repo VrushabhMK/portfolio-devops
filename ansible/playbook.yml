@@ -1,5 +1,8 @@
 ---
-# Main playbook - Configures EC2 instances with Docker, Kubernetes, and Jenkins
+# Ansible Playbook - Configure EC2 i-00efc8195ddaca37a
+# Installs: Docker, Kubernetes (minikube), Jenkins, Node.js, Nginx, AWS CLI
+# Clones repo and starts monitoring stack
+
 - name: Configure Portfolio DevOps Infrastructure
   hosts: all
   become: yes
@@ -8,24 +11,140 @@
   vars_files:
     - group_vars/all.yml
 
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install base packages
+      apt:
+        name:
+          - curl
+          - wget
+          - git
+          - unzip
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - python3-pip
+          - nginx
+        state: present
+
   roles:
     - docker
     - kubernetes
     - jenkins
 
+  tasks:
+    - name: Install Node.js 20
+      shell: |
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+        apt-get install -y nodejs
+      args:
+        creates: /usr/bin/node
+
+    - name: Install AWS CLI v2
+      shell: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+        unzip -o /tmp/awscliv2.zip -d /tmp
+        /tmp/aws/install --update
+      args:
+        creates: /usr/local/bin/aws
+
+    - name: Create app directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Clone portfolio repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: main
+        force: yes
+      become_user: ubuntu
+
+    - name: Configure Nginx reverse proxy
+      copy:
+        dest: /etc/nginx/sites-available/portfolio
+        content: |
+          server {
+              listen 80;
+              server_name _;
+
+              location / {
+                  proxy_pass http://localhost:3000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_cache_bypass $http_upgrade;
+              }
+
+              location /api/ {
+                  proxy_pass http://localhost:5000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              }
+          }
+
+    - name: Enable Nginx site
+      file:
+        src: /etc/nginx/sites-available/portfolio
+        dest: /etc/nginx/sites-enabled/portfolio
+        state: link
+
+    - name: Remove default Nginx site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Restart and enable Nginx
+      systemd:
+        name: nginx
+        state: restarted
+        enabled: yes
+
+    - name: Start monitoring stack
+      shell: |
+        cd {{ app_dir }}
+        docker compose up -d prometheus grafana node-exporter cadvisor
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Start minikube
+      shell: minikube start --driver=docker --memory=2048 --cpus=2
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Apply Kubernetes namespace
+      shell: kubectl apply -f {{ app_dir }}/kubernetes/namespace.yaml
+      become_user: ubuntu
+      ignore_errors: yes
+
   post_tasks:
-    - name: Verify Docker installation
+    - name: Verify Docker
       command: docker --version
       changed_when: false
-      register: docker_version
+      register: docker_ver
 
-    - name: Verify kubectl installation
-      command: kubectl version --client
+    - name: Verify kubectl
+      command: kubectl version --client --short
       changed_when: false
-      register: kubectl_version
+      register: kubectl_ver
+      become_user: ubuntu
+      ignore_errors: yes
 
-    - name: Display installed versions
+    - name: Show installed versions
       debug:
         msg:
-          - "Docker: {{ docker_version.stdout }}"
-          - "kubectl: {{ kubectl_version.stdout }}"
+          - "Docker: {{ docker_ver.stdout }}"
+          - "App dir: {{ app_dir }}"
+          - "Repo: {{ repo_url }}"

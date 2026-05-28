@@ -1,425 +1,207 @@
-# CI/CD Pipeline for Dynamic Portfolio Website Deployment Using DevOps Tools
+# Portfolio DevOps - CI/CD Pipeline
 
-A fully automated, cloud-hosted dynamic portfolio website with complete CI/CD automation, containerization, orchestration, infrastructure automation, monitoring, and DevOps best practices implemented end-to-end.
-
-## Tech Stack
-
-| Layer | Technologies |
-|-------|-------------|
-| **Frontend** | React.js, TypeScript, Tailwind CSS, Framer Motion |
-| **Backend** | Node.js, Express.js, MongoDB, Mongoose |
-| **DevOps** | Git, GitHub, Docker, Jenkins, Kubernetes, Terraform, Ansible |
-| **Cloud** | AWS (EC2, VPC, Security Groups) |
-| **Monitoring** | Prometheus, Grafana, cAdvisor, Node Exporter |
-| **Database** | MongoDB Atlas / Containerized MongoDB |
-
-## CI/CD Workflow
-
-```
-Developer → Git Push → GitHub → Jenkins Webhook → Docker Build → Docker Hub Push → Kubernetes Deploy → AWS Hosting
-```
-
-## Project Structure
-
-```
-portfolio-devops/
-├── frontend/                # React.js frontend application
-│   ├── src/
-│   │   ├── components/      # React components (Hero, About, Skills, etc.)
-│   │   ├── context/         # Theme context (dark/light mode)
-│   │   ├── hooks/           # Custom React hooks
-│   │   ├── lib/             # API client, utilities
-│   │   ├── assets/          # Images, icons
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   └── index.css        # Design system tokens
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── tailwind.config.ts
-│   ├── vite.config.ts
-│   └── tsconfig.json
-├── backend/                 # Node.js + Express.js API
-│   ├── src/
-│   │   ├── config/          # Database connection
-│   │   ├── controllers/     # Route handlers
-│   │   ├── middleware/       # Auth, validation
-│   │   ├── models/          # Mongoose schemas
-│   │   ├── routes/          # API route definitions
-│   │   └── server.js        # Entry point
-│   ├── Dockerfile
-│   ├── package.json
-│   └── .env.example
-├── kubernetes/              # Kubernetes manifests
-│   ├── namespace.yaml
-│   ├── configmap.yaml
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── ingress.yaml
-│   └── hpa.yaml
-├── terraform/               # AWS infrastructure as code
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── infrastructure.tf
-│   ├── user-data.sh
-│   └── modules/
-│       ├── vpc/
-│       ├── ec2/
-│       └── security-group/
-├── ansible/                 # Configuration management
-│   ├── playbook.yml
-│   ├── inventory/
-│   │   └── hosts.yml
-│   ├── group_vars/
-│   │   └── all.yml
-│   └── roles/
-│       ├── docker/
-│       ├── kubernetes/
-│       └── jenkins/
-├── jenkins/                 # CI/CD pipeline
-│   └── Jenkinsfile
-├── docker/                  # Docker configurations
-│   ├── nginx.conf
-│   └── mongo-init.js
-├── monitoring/              # Prometheus + Grafana
-│   ├── prometheus/
-│   │   └── prometheus.yml
-│   └── grafana/
-│       └── provisioning/
-│           ├── datasources/
-│           └── dashboards/
-├── docker-compose.yml       # Multi-container orchestration
-├── .gitignore
-└── README.md
-```
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js 20+
-- Docker & Docker Compose
-- kubectl & Minikube (for K8s deployment)
-- Terraform (for AWS provisioning)
-- Ansible (for configuration management)
-
-### 1. Local Development (Without Docker)
-
-```bash
-# Clone the repository
-git clone https://github.com/your-username/portfolio-devops.git
-cd portfolio-devops
-
-# Start backend
-cd backend
-cp .env.example .env
-npm install
-npm run dev
-
-# In a new terminal, start frontend
-cd frontend
-npm install
-npm run dev
-```
-
-Access the application at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000/api/health
-
-### 2. Docker Compose (Recommended)
-
-```bash
-# Start all services
-docker-compose up -d
-
-# View running containers
-docker-compose ps
-
-# View logs
-docker-compose logs -f
-
-# Stop all services
-docker-compose down
-```
-
-Access:
-- Frontend: http://localhost:3000
-- Backend: http://localhost:5000
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3001 (admin/admin123)
-
-### 3. Kubernetes Deployment
-
-```bash
-# Start Minikube
-minikube start --driver=docker
-
-# Enable required addons
-minikube addons enable ingress
-minikube addons enable metrics-server
-
-# Apply Kubernetes manifests
-kubectl apply -f kubernetes/namespace.yaml
-kubectl apply -f kubernetes/configmap.yaml
-kubectl apply -f kubernetes/deployment.yaml
-kubectl apply -f kubernetes/service.yaml
-kubectl apply -f kubernetes/ingress.yaml
-kubectl apply -f kubernetes/hpa.yaml
-
-# Check deployment status
-kubectl get pods -n portfolio
-kubectl get services -n portfolio
-
-# Port forward for local access
-kubectl port-forward svc/frontend-service 3000:80 -n portfolio
-kubectl port-forward svc/backend-service 5000:5000 -n portfolio
-```
-
-### 4. AWS Deployment with Terraform
-
-```bash
-# Initialize Terraform
-cd terraform
-terraform init
-
-# Review the plan
-terraform plan
-
-# Apply infrastructure
-terraform apply -auto-approve
-
-# Note the output EC2 public IP
-terraform output ec2_public_ip
-```
-
-### 5. Configure EC2 with Ansible
-
-```bash
-# Update inventory with EC2 IP from Terraform output
-cd ansible
-# Edit inventory/hosts.yml with your EC2 IP
-
-# Run the playbook
-ansible-playbook -i inventory/hosts.yml playbook.yml
-```
-
-### 6. Setup Jenkins CI/CD
-
-1. Access Jenkins at http://YOUR_EC2_IP:8080
-2. Get initial admin password: `docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword`
-3. Install suggested plugins
-4. Add Docker Hub credentials in Jenkins Credentials
-5. Create a Pipeline job pointing to your GitHub repo
-6. The Jenkinsfile will handle the complete CI/CD pipeline
-
-## API Endpoints
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/health` | Health check | No |
-| GET | `/api/projects` | Get all projects | No |
-| GET | `/api/projects/:id` | Get single project | No |
-| POST | `/api/projects` | Create project | Admin |
-| PUT | `/api/projects/:id` | Update project | Admin |
-| DELETE | `/api/projects/:id` | Delete project | Admin |
-| GET | `/api/skills` | Get all skills | No |
-| POST | `/api/skills` | Create skill | Admin |
-| GET | `/api/contacts` | Get all contacts | Admin |
-| POST | `/api/contacts` | Submit contact form | No |
-| POST | `/api/auth/register` | Register admin | No |
-| POST | `/api/auth/login` | Login | No |
-| GET | `/api/auth/me` | Get current user | Admin |
-
-## Monitoring
-
-### Prometheus Metrics
-- CPU and memory usage
-- Container health and resource utilization
-- HTTP request rates and response times
-- Kubernetes pod status
-
-### Grafana Dashboards
-- Pre-configured Portfolio DevOps Monitoring dashboard
-- Real-time metrics visualization
-- Alert configuration support
-
-Access Grafana at `http://localhost:3001` with credentials `admin/admin123`.
-
-## Features
-
-- **Dark/Light Mode**: Toggle between themes with persistent preference
-- **Responsive Design**: Optimized for mobile, tablet, and desktop
-- **Animated Sections**: Scroll-triggered animations with Framer Motion
-- **Contact Form**: Real-time form validation with API submission
-- **Skills Progress Bars**: Animated skill level indicators
-- **Project Filtering**: Filter projects by category
-- **Resume Download**: Downloadable PDF resume
-- **SEO Optimized**: Proper meta tags, semantic HTML, accessibility
-- **Loading Animation**: Professional loading screen with progress
-
-## DevOps Tools Used
-
-1. **Git** - Version control with feature branches
-2. **GitHub** - Code hosting and collaboration
-3. **Docker** - Containerization of frontend, backend, and MongoDB
-4. **Jenkins** - Automated CI/CD pipeline
-5. **Docker Hub** - Container image registry
-6. **Kubernetes** - Container orchestration with auto-scaling
-7. **Terraform** - AWS infrastructure provisioning
-8. **Ansible** - Configuration management
-9. **Prometheus** - Metrics collection
-10. **Grafana** - Monitoring dashboards
-11. **AWS** - Cloud hosting (EC2, VPC, Security Groups)
+**GitHub:** https://github.com/VrushabhMK/portfolio-devops
+**AWS Account:** 968138089440 | **EC2:** i-00efc8195ddaca37a | **Region:** us-east-1
+**Docker Hub:** vrushabhm/portfolio-frontend | vrushabhm/portfolio-backend
 
 ---
 
-## How to Show DevOps Tools in Review
+## Architecture
 
-### Method 1: Visual DevOps Pipeline Section on Website
-
-The portfolio website now includes a **DevOps Pipeline** section (between Projects and Certifications) that visually displays:
-- Complete CI/CD workflow diagram with all 8 pipeline stages
-- All 11 DevOps tools as interactive expandable cards
-- Configuration files for each tool
-- Infrastructure summary (Terraform + Ansible)
-- Monitoring summary (Prometheus + Grafana)
-- Access points table for all services
-
-### Method 2: Run the Demo Script
-
-A demo script walks through each of the 11 tools one-by-one with evidence:
-
-```bash
-# Windows
-demo.bat
-
-# Linux/Mac
-chmod +x demo.sh && ./demo.sh
+```
+Developer -> Git Push -> GitHub -> Jenkins Webhook ->
+  Install & Build -> Docker Build -> Docker Hub Push ->
+  EC2 Deploy (Docker) -> Kubernetes (Minikube) ->
+  Health Check -> S3 Artifact Store
 ```
 
-### Method 3: Live Tool-by-Tool Demonstration
+## Service Access URLs
 
-Follow this checklist to demonstrate each tool live:
-
-#### Step 1: Show the Website (Frontend)
-```bash
-cd frontend && npm run dev
-# Open http://localhost:3000 → Scroll to DevOps Pipeline section
-```
-
-#### Step 2: Show Git & GitHub
-```bash
-git log --oneline          # Show commit history
-git branch -a              # Show branches
-cat .gitignore             # Show ignore rules
-```
-
-#### Step 3: Show Docker (Containerization)
-```bash
-# Make sure Docker Desktop is running
-docker-compose up -d --build    # Build and start all containers
-docker-compose ps               # Show running containers
-docker images                   # Show built images
-```
-**Shows**: frontend, backend, mongodb, prometheus, grafana, node-exporter, cadvisor
-
-#### Step 4: Show Docker Hub
-```bash
-docker login
-docker tag portfolio-frontend your-username/portfolio-frontend:latest
-docker push your-username/portfolio-frontend:latest
-```
-
-#### Step 5: Show Jenkins CI/CD
-```bash
-# Start Jenkins container
-docker run -d -p 8080:8080 -p 50000:50000 --name jenkins jenkins/jenkins:lts
-# Get admin password
-docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
-# Open http://localhost:8080 → Create Pipeline job → Point to repo
-```
-**Shows**: Jenkinsfile with 7 stages, parallel builds, auto-deploy
-
-#### Step 6: Show Kubernetes
-```bash
-minikube start --driver=docker       # Start K8s cluster
-kubectl apply -f kubernetes/         # Deploy all manifests
-kubectl get pods -n portfolio         # Show running pods
-kubectl get services -n portfolio     # Show services
-kubectl get hpa -n portfolio          # Show auto-scaling
-```
-**Shows**: 2 replicas per service, HPA auto-scaling, ingress, health checks
-
-#### Step 7: Show Terraform (Infrastructure)
-```bash
-cd terraform
-terraform init                        # Initialize providers
-terraform plan                        # Show planned AWS resources
-# Shows: VPC, subnets, EC2, security groups, internet gateway, NAT
-```
-
-#### Step 8: Show Ansible (Configuration)
-```bash
-# Show playbook structure
-cat ansible/playbook.yml              # Main playbook
-cat ansible/roles/docker/tasks/main.yml
-cat ansible/roles/kubernetes/tasks/main.yml
-cat ansible/roles/jenkins/tasks/main.yml
-```
-
-#### Step 9: Show AWS Cloud
-```bash
-cd terraform
-terraform apply -auto-approve         # Provision AWS
-terraform output                      # Show EC2 public IP
-```
-
-#### Step 10: Show Prometheus Monitoring
-```bash
-# Open http://localhost:9090
-# Run queries:
-#   up                                    → All targets status
-#   rate(http_requests_total[5m])         → Request rate
-#   container_cpu_usage_seconds_total     → Container CPU
-```
-
-#### Step 11: Show Grafana Dashboards
-```bash
-# Open http://localhost:3001 (admin/admin123)
-# Shows: CPU, Memory, Container Health, HTTP Requests, Pod Status
-```
-
-### Service Access Summary
+> Get your EC2 IP first (see Step 1 below), then replace EC2_IP
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| Portfolio Frontend | http://localhost:3000 | - |
-| Backend API | http://localhost:5000/api/health | - |
-| Jenkins | http://localhost:8080 | See password in console |
-| Prometheus | http://localhost:9090 | - |
-| Grafana | http://localhost:3001 | admin / admin123 |
-| cAdvisor | http://localhost:8080 | - |
+| Portfolio Website | `http://EC2_IP:3000` | - |
+| Backend API | `http://EC2_IP:5000/api/health` | - |
+| Jenkins | `http://EC2_IP:8080` | admin / (see setup) |
+| Grafana | `http://EC2_IP:3001` | admin / admin123 |
+| Prometheus | `http://EC2_IP:9090` | - |
+| S3 Builds | AWS Console -> S3 -> `portfolio-devops-artifacts-968138089440/builds/` | - |
 
 ---
 
-## Deployment Commands Summary
+## Step-by-Step Setup
+
+### Step 1: Get EC2 Public IP
 
 ```bash
-# Docker
-docker-compose up -d --build
-
-# Kubernetes
-kubectl apply -f kubernetes/
-
-# Terraform
-cd terraform && terraform apply -auto-approve
-
-# Ansible
-ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook.yml
-
-# Jenkins
-# Create pipeline job with Jenkinsfile from repository
+aws ec2 describe-instances \
+  --instance-ids i-00efc8195ddaca37a \
+  --region us-east-1 \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' \
+  --output text
 ```
 
-## License
+### Step 2: Create S3 Bucket (one-time)
 
-MIT License
+```bash
+aws s3 mb s3://portfolio-devops-artifacts-968138089440 --region us-east-1
+aws s3api put-bucket-versioning \
+  --bucket portfolio-devops-artifacts-968138089440 \
+  --versioning-configuration Status=Enabled
+```
+
+### Step 3: Run Terraform
+
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply -auto-approve
+# Outputs will show all service URLs
+```
+
+### Step 4: Run Ansible (configure EC2)
+
+```bash
+export EC2_PUBLIC_IP=<your-ec2-ip>
+cd ansible
+# Edit inventory/hosts.yml - set ansible_host to your EC2 IP
+ansible-playbook -i inventory/hosts.yml playbook.yml \
+  --private-key ~/.ssh/portfolio-key.pem
+```
+
+### Step 5: Configure Jenkins
+
+SSH into EC2:
+```bash
+ssh -i ~/.ssh/portfolio-key.pem ubuntu@<EC2_IP>
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+Open `http://EC2_IP:8080` and complete setup wizard.
+
+Install plugins: GitHub plugin, SSH Agent plugin, NodeJS plugin, Pipeline
+
+**Add Credentials** (Manage Jenkins -> Credentials -> Global -> Add):
+
+| ID | Type | Value |
+|----|------|-------|
+| `docker-hub-credentials` | Username/Password | Docker Hub: vrushabhm / your-password |
+| `ec2-ssh-key` | SSH Private Key | Paste contents of portfolio-key.pem |
+| `jwt-secret` | Secret text | `portfolio-devops-jwt-secret-968138089440` |
+
+**Configure NodeJS** (Manage Jenkins -> Tools -> NodeJS installations):
+- Name: `NodeJS-20`, Version: `20.x`
+
+**Create Pipeline Job:**
+1. New Item -> Pipeline -> name: `portfolio-pipeline`
+2. Build Triggers -> check **GitHub hook trigger for GITScm polling**
+3. Pipeline -> Definition: **Pipeline script from SCM**
+4. SCM: Git, URL: `https://github.com/VrushabhMK/portfolio-devops.git`
+5. Script Path: `jenkins/Jenkinsfile`
+6. Save -> Build Now
+
+### Step 6: Configure GitHub Webhook (for auto-deploy)
+
+GitHub repo -> Settings -> Webhooks -> Add webhook:
+- Payload URL: `http://EC2_IP:8080/github-webhook/`
+- Content type: `application/json`
+- Events: **Just the push event**
+- Active: checked
+
+Now every `git push` to main auto-triggers the full pipeline.
+
+---
+
+## Local Development
+
+```bash
+git clone https://github.com/VrushabhMK/portfolio-devops.git
+cd portfolio-devops
+docker compose up -d
+
+# Access:
+# Frontend:   http://localhost:3000
+# Backend:    http://localhost:5000/api/health
+# Grafana:    http://localhost:3001  (admin/admin123)
+# Prometheus: http://localhost:9090
+```
+
+---
+
+## Automatic Deployment Flow
+
+Every `git push` to `main`:
+1. GitHub sends webhook to Jenkins at `http://EC2_IP:8080/github-webhook/`
+2. Jenkins pulls code, installs deps, builds frontend + backend
+3. Docker images built and pushed to Docker Hub:
+   - `vrushabhm/portfolio-frontend:BUILD_NUMBER`
+   - `vrushabhm/portfolio-backend:BUILD_NUMBER`
+4. Jenkins SSHs into EC2 `i-00efc8195ddaca37a` and redeploys containers
+5. Kubernetes manifests applied on minikube
+6. Health check verifies deployment
+7. Build info saved to S3: `s3://portfolio-devops-artifacts-968138089440/builds/`
+
+---
+
+## Where Data Is Stored
+
+| Data | Storage | How to Access |
+|------|---------|---------------|
+| Contact form submissions | MongoDB container | `docker exec -it portfolio-mongodb mongosh -u admin -p password123 --authenticationDatabase admin` then `use portfolio; db.contacts.find()` |
+| Projects | MongoDB `portfolio.projects` | Same as above |
+| Skills | MongoDB `portfolio.skills` | Same as above |
+| Resume PDF | AWS S3 | `aws s3 ls s3://portfolio-devops-artifacts-968138089440/resume/` |
+| Build artifacts | AWS S3 | `aws s3 ls s3://portfolio-devops-artifacts-968138089440/builds/` |
+| Terraform state | AWS S3 | `aws s3 ls s3://portfolio-devops-artifacts-968138089440/terraform/` |
+| Container metrics | Prometheus + Grafana | `http://EC2_IP:3001` |
+
+---
+
+## View Build History in S3
+
+```bash
+# List all builds
+aws s3 ls s3://portfolio-devops-artifacts-968138089440/builds/ --region us-east-1
+
+# View latest build info
+aws s3 cp s3://portfolio-devops-artifacts-968138089440/builds/latest.json - --region us-east-1
+```
+
+---
+
+## Kubernetes Commands (on EC2)
+
+```bash
+kubectl get pods -n portfolio
+kubectl get svc -n portfolio
+kubectl get deployments -n portfolio
+kubectl logs -f deployment/backend -n portfolio
+kubectl describe pod -n portfolio
+```
+
+---
+
+## Monitoring
+
+- **Grafana:** `http://EC2_IP:3001` -> Login: admin/admin123 -> Dashboard: "Portfolio DevOps"
+- **Prometheus:** `http://EC2_IP:9090` -> Status -> Targets
+- **Metrics:** CPU, memory, container health, pod status, API uptime, heap usage
+
+---
+
+## DevOps Tools Summary
+
+| Tool | Purpose | Where to See |
+|------|---------|--------------|
+| Git + GitHub | Source control + webhooks | https://github.com/VrushabhMK/portfolio-devops |
+| Docker | Containerization | `docker ps` on EC2 |
+| Docker Hub | Image registry | https://hub.docker.com/u/vrushabhm |
+| Jenkins | CI/CD automation | `http://EC2_IP:8080` |
+| Kubernetes (minikube) | Orchestration | `kubectl get pods -n portfolio` |
+| Terraform | AWS infra as code | `terraform output` |
+| Ansible | EC2 config management | `ansible-playbook` |
+| AWS EC2 | Cloud hosting | Instance: i-00efc8195ddaca37a |
+| AWS S3 | Artifact + state storage | `portfolio-devops-artifacts-968138089440` |
+| Prometheus + Grafana | Monitoring | `http://EC2_IP:3001` |

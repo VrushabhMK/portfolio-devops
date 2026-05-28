@@ -1,5 +1,4 @@
 ---
-# Common variables for all hosts
 project_name: portfolio-devops
 docker_compose_version: "2.24.0"
 kubectl_version: "1.29.0"
@@ -7,10 +6,12 @@ minikube_version: "1.32.0"
 jenkins_version: "lts"
 node_version: "20"
 
-# Docker Hub credentials (set these before running)
-docker_hub_username: "{{ lookup('env', 'DOCKER_HUB_USERNAME') }}"
+docker_hub_username: "vrushabhm"
 docker_hub_password: "{{ lookup('env', 'DOCKER_HUB_PASSWORD') }}"
 
-# Application paths
 app_dir: /opt/portfolio
-repo_url: "https://github.com/your-username/portfolio-devops.git"
+repo_url: "https://github.com/VrushabhMK/portfolio-devops.git"
+
+aws_region: "us-east-1"
+aws_account_id: "968138089440"
+s3_bucket: "portfolio-devops-artifacts-968138089440"
