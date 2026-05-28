@@ -1,6 +1,3 @@
-# Terraform configuration for AWS infrastructure
-# Portfolio website deployment on AWS
-
 terraform {
   required_version = ">= 1.0"
 
@@ -11,12 +8,11 @@ terraform {
     }
   }
 
-  # Backend for state storage (uncomment and configure for production)
-  # backend "s3" {
-  #   bucket = "portfolio-terraform-state"
-  #   key    = "infrastructure/terraform.tfstate"
-  #   region = "us-east-1"
-  # }
+  backend "s3" {
+    bucket = "portfolio-devops-artifacts-968138089440"
+    key    = "terraform/terraform.tfstate"
+    region = "us-east-1"
+  }
 }
 
 provider "aws" {
@@ -27,6 +23,7 @@ provider "aws" {
       Project     = "Portfolio-DevOps"
       Environment = var.environment
       ManagedBy   = "Terraform"
+      Owner       = "968138089440"
     }
   }
 }

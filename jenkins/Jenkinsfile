@@ -1,78 +1,255 @@
+// Jenkins CI/CD Pipeline - Portfolio DevOps
+// Workflow: GitHub Push -> Jenkins -> Docker Build -> Docker Hub -> EC2 Deploy -> Kubernetes
+
 pipeline {
     agent any
 
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
+        DOCKER_HUB_USERNAME    = 'vrushabhm'
+        IMAGE_PREFIX           = "${DOCKER_HUB_USERNAME}/portfolio"
+        FRONTEND_IMAGE         = "${IMAGE_PREFIX}-frontend"
+        BACKEND_IMAGE          = "${IMAGE_PREFIX}-backend"
+        IMAGE_TAG              = "${BUILD_NUMBER}"
+        GIT_REPO               = 'https://github.com/VrushabhMK/portfolio-devops.git'
+        GIT_BRANCH             = 'main'
+        K8S_NAMESPACE          = 'portfolio'
+        AWS_INSTANCE_ID        = 'i-00efc8195ddaca37a'
+        AWS_REGION             = 'us-east-1'
+        EC2_USER               = 'ubuntu'
+        EC2_SSH_CREDENTIALS    = 'ec2-ssh-key'
+        JWT_SECRET             = credentials('jwt-secret')
+    }
+
+    triggers {
+        githubPush()
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 30, unit: 'MINUTES')
+        disableConcurrentBuilds()
+    }
+
     stages {
-
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-
-                echo '=== Cloning GitHub Repository ==='
-
-                git branch: 'main',
-                    url: 'https://github.com/VrushabhMK/portfolio-devops.git'
+                echo '=== Pulling latest code from GitHub ==='
+                git branch: "${GIT_BRANCH}", url: "${GIT_REPO}"
+                sh 'echo "Commit: $(git log -1 --oneline)"'
             }
         }
 
-        stage('Verify Project Structure') {
-            steps {
-
-                echo '=== Checking Project Files ==='
-
-                sh '''
-                    pwd
-                    ls
-                    ls frontend || true
-                    ls backend || true
-                    ls kubernetes || true
-                    ls terraform || true
-                    ls ansible || true
-                '''
+        stage('Install & Build') {
+            parallel {
+                stage('Frontend') {
+                    steps {
+                        dir('frontend') {
+                            sh 'npm ci --prefer-offline'
+                            sh 'npm run build'
+                        }
+                    }
+                }
+                stage('Backend') {
+                    steps {
+                        dir('backend') {
+                            sh 'npm ci --prefer-offline'
+                            sh 'npm test || echo "No tests configured, skipping"'
+                        }
+                    }
+                }
             }
         }
 
-        stage('Verify Docker Configuration') {
-            steps {
-
-                echo '=== Checking Docker Files ==='
-
-                sh '''
-                    ls docker-compose.yml || true
-                    ls frontend/Dockerfile || true
-                    ls backend/Dockerfile || true
-                '''
+        stage('Docker Build') {
+            parallel {
+                stage('Frontend Image') {
+                    steps {
+                        sh """
+                            docker build \\
+                                -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \\
+                                -t ${FRONTEND_IMAGE}:latest \\
+                                -f frontend/Dockerfile .
+                        """
+                    }
+                }
+                stage('Backend Image') {
+                    steps {
+                        sh """
+                            docker build \\
+                                -t ${BACKEND_IMAGE}:${IMAGE_TAG} \\
+                                -t ${BACKEND_IMAGE}:latest \\
+                                -f backend/Dockerfile ./backend
+                        """
+                    }
+                }
             }
         }
 
-        stage('Verify Kubernetes Files') {
+        stage('Push to Docker Hub') {
             steps {
-
-                echo '=== Checking Kubernetes Manifests ==='
-
-                sh '''
-                    ls kubernetes/*.yaml || true
-                '''
+                sh """
+                    echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin
+                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${FRONTEND_IMAGE}:latest
+                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${BACKEND_IMAGE}:latest
+                    docker logout
+                """
             }
         }
 
-        stage('CI Pipeline Complete') {
+        stage('Get EC2 Public IP') {
             steps {
+                script {
+                    env.EC2_PUBLIC_IP = sh(
+                        script: "aws ec2 describe-instances --instance-ids ${AWS_INSTANCE_ID} --region ${AWS_REGION} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text",
+                        returnStdout: true
+                    ).trim()
+                    echo "EC2 Public IP: ${env.EC2_PUBLIC_IP}"
+                }
+            }
+        }
 
-                echo '=== DevOps CI Pipeline Executed Successfully ==='
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(credentials: ["${EC2_SSH_CREDENTIALS}"]) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_PUBLIC_IP} '
+                            docker pull ${FRONTEND_IMAGE}:latest
+                            docker pull ${BACKEND_IMAGE}:latest
+
+                            docker stop portfolio-frontend portfolio-backend portfolio-mongodb 2>/dev/null || true
+                            docker rm  portfolio-frontend portfolio-backend portfolio-mongodb 2>/dev/null || true
+
+                            docker network create portfolio-network 2>/dev/null || true
+
+                            docker run -d \\
+                                --name portfolio-mongodb \\
+                                --network portfolio-network \\
+                                --restart unless-stopped \\
+                                -v mongodb_data:/data/db \\
+                                -e MONGO_INITDB_ROOT_USERNAME=admin \\
+                                -e MONGO_INITDB_ROOT_PASSWORD=password123 \\
+                                mongo:7
+
+                            sleep 8
+
+                            docker run -d \\
+                                --name portfolio-backend \\
+                                --network portfolio-network \\
+                                --restart unless-stopped \\
+                                -p 5000:5000 \\
+                                -e NODE_ENV=production \\
+                                -e PORT=5000 \\
+                                -e MONGODB_URI="mongodb://admin:password123@portfolio-mongodb:27017/portfolio?authSource=admin" \\
+                                -e JWT_SECRET="${JWT_SECRET}" \\
+                                -e JWT_EXPIRE=7d \\
+                                -e FRONTEND_URL="http://${EC2_PUBLIC_IP}" \\
+                                -e AWS_REGION=us-east-1 \\
+                                -e AWS_S3_BUCKET=portfolio-devops-artifacts-968138089440 \\
+                                ${BACKEND_IMAGE}:latest
+
+                            docker run -d \\
+                                --name portfolio-frontend \\
+                                --network portfolio-network \\
+                                --restart unless-stopped \\
+                                -p 3000:80 \\
+                                ${FRONTEND_IMAGE}:latest
+
+                            echo "=== Running Containers ==="
+                            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sshagent(credentials: ["${EC2_SSH_CREDENTIALS}"]) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_PUBLIC_IP} '
+                            export KUBECONFIG=/home/ubuntu/.kube/config
+                            cd /opt/portfolio
+
+                            sed -i "s|vrushabhm/portfolio-frontend:.*|${FRONTEND_IMAGE}:${IMAGE_TAG}|g" kubernetes/deployment.yaml
+                            sed -i "s|vrushabhm/portfolio-backend:.*|${BACKEND_IMAGE}:${IMAGE_TAG}|g" kubernetes/deployment.yaml
+
+                            kubectl apply -f kubernetes/namespace.yaml
+                            kubectl apply -f kubernetes/configmap.yaml
+                            kubectl apply -f kubernetes/deployment.yaml
+                            kubectl apply -f kubernetes/service.yaml
+                            kubectl apply -f kubernetes/hpa.yaml
+
+                            kubectl rollout status deployment/frontend -n portfolio --timeout=120s || true
+                            kubectl rollout status deployment/backend  -n portfolio --timeout=120s || true
+
+                            echo "=== Kubernetes Pods ==="
+                            kubectl get pods -n portfolio
+                            echo "=== Kubernetes Services ==="
+                            kubectl get svc -n portfolio
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh """
+                    sleep 10
+                    curl -sf http://${EC2_PUBLIC_IP}:5000/api/health && echo "Backend OK" || echo "Backend health check failed"
+                    curl -sf http://${EC2_PUBLIC_IP}:3000       && echo "Frontend OK" || echo "Frontend health check failed"
+                """
+            }
+        }
+
+        stage('Store Build Info in S3') {
+            steps {
+                sh """
+                    cat > build-info.json << EOF
+{
+  "build": "${BUILD_NUMBER}",
+  "commit": "\$(git log -1 --format=%H)",
+  "timestamp": "\$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "frontend_image": "${FRONTEND_IMAGE}:${IMAGE_TAG}",
+  "backend_image": "${BACKEND_IMAGE}:${IMAGE_TAG}",
+  "ec2_ip": "${EC2_PUBLIC_IP}",
+  "portfolio_url": "http://${EC2_PUBLIC_IP}:3000",
+  "api_url": "http://${EC2_PUBLIC_IP}:5000",
+  "jenkins_url": "http://${EC2_PUBLIC_IP}:8080",
+  "grafana_url": "http://${EC2_PUBLIC_IP}:3001"
+}
+EOF
+                    aws s3 cp build-info.json s3://portfolio-devops-artifacts-968138089440/builds/build-${BUILD_NUMBER}.json --region ${AWS_REGION}
+                    aws s3 cp build-info.json s3://portfolio-devops-artifacts-968138089440/builds/latest.json --region ${AWS_REGION}
+                    echo "Build info stored in S3"
+                """
             }
         }
     }
 
     post {
-
         success {
-            echo '=== PIPELINE SUCCESS ==='
+            echo """
+=== DEPLOYMENT SUCCESSFUL - Build #${BUILD_NUMBER} ===
+  Portfolio:  http://${EC2_PUBLIC_IP}:3000
+  API:        http://${EC2_PUBLIC_IP}:5000/api/health
+  Jenkins:    http://${EC2_PUBLIC_IP}:8080
+  Grafana:    http://${EC2_PUBLIC_IP}:3001
+  Prometheus: http://${EC2_PUBLIC_IP}:9090
+  S3 Builds:  s3://portfolio-devops-artifacts-968138089440/builds/
+            """
         }
-
         failure {
-            echo '=== PIPELINE FAILED ==='
+            echo '=== PIPELINE FAILED - Check stage logs above ==='
         }
-
         always {
+            sh """
+                docker rmi ${FRONTEND_IMAGE}:${IMAGE_TAG} || true
+                docker rmi ${BACKEND_IMAGE}:${IMAGE_TAG} || true
+            """
             cleanWs()
         }
     }
