@@ -25,4 +25,4 @@ echo DEPLOYMENT COMPLETE!
 echo Access your live site at: http://3.24.101.251
 echo ===================================================
 echo.
-pause
+rem pause
