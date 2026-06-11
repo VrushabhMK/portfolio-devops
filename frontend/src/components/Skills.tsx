@@ -35,7 +35,9 @@ export default function Skills() {
   useEffect(() => {
     api.get('/skills')
       .then(res => {
-        if (res.data && res.data.length > 0) setSkills(res.data)
+        if (res.data && res.data.success && Array.isArray(res.data.data)) {
+          setSkills(res.data.data)
+        }
       })
       .catch(() => {
         // Use default skills if API fails

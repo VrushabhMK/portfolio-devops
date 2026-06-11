@@ -13,6 +13,7 @@ const footerLinks = [
   { label: 'Skills', href: '#skills' },
   { label: 'Projects', href: '#projects' },
   { label: 'Contact', href: '#contact' },
+  { label: 'Admin Login', href: '/login' },
 ]
 
 export default function Footer() {

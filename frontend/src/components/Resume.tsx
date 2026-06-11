@@ -105,7 +105,8 @@ export default function Resume() {
               <button
                 onClick={() => {
                   const link = document.createElement('a')
-                  link.href = '/resume.pdf'
+                  link.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/resume/download`
+                  link.target = '_blank'
                   link.download = 'Arjun_Sharma_Resume.pdf'
                   link.click()
                 }}

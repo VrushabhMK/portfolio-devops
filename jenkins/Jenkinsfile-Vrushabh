@@ -1,0 +1,206 @@
+// Jenkins CI/CD Pipeline - Portfolio DevOps
+// EC2: 3.219.237.151 | Docker Hub: vrushabh131204
+// SSH: Jenkins -> 172.17.0.1 (Docker host) using /tmp/jenkins-key
+
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
+        DOCKER_HUB_USERNAME    = 'vrushabh131204'
+        IMAGE_PREFIX           = "${DOCKER_HUB_USERNAME}/portfolio"
+        FRONTEND_IMAGE         = "${IMAGE_PREFIX}-frontend"
+        BACKEND_IMAGE          = "${IMAGE_PREFIX}-backend"
+        IMAGE_TAG              = "${BUILD_NUMBER}"
+        GIT_REPO               = 'https://github.com/VrushabhMK/portfolio-devops.git'
+        GIT_BRANCH             = 'main'
+        AWS_REGION             = 'us-east-1'
+        EC2_PUBLIC_IP          = '32.196.137.76'
+        EC2_HOST               = '172.17.0.1'
+        EC2_USER               = 'ubuntu'
+        SSH_KEY_PATH           = '/tmp/jenkins-key'
+    }
+
+    triggers {
+        githubPush()
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 45, unit: 'MINUTES')
+        disableConcurrentBuilds()
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                echo '=== Pulling latest code from GitHub ==='
+                git branch: "${GIT_BRANCH}", url: "${GIT_REPO}"
+                sh 'git log -1 --oneline'
+            }
+        }
+
+        stage('Docker Build') {
+            parallel {
+                stage('Frontend Image') {
+                    steps {
+                        echo '=== Building Frontend Docker image ==='
+                        sh """
+                            docker build \
+                                -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                                -t ${FRONTEND_IMAGE}:latest \
+                                -f frontend/Dockerfile .
+                        """
+                    }
+                }
+                stage('Backend Image') {
+                    steps {
+                        echo '=== Building Backend Docker image ==='
+                        sh """
+                            docker build \
+                                -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
+                                -t ${BACKEND_IMAGE}:latest \
+                                -f backend/Dockerfile ./backend
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                echo '=== Pushing images to Docker Hub ==='
+                sh """
+                    echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin
+                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${FRONTEND_IMAGE}:latest
+                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${BACKEND_IMAGE}:latest
+                    docker logout
+                """
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                echo '=== Deploying containers on EC2 ==='
+                sh """
+                    ssh -o StrictHostKeyChecking=no \
+                        -o ConnectTimeout=30 \
+                        -i ${SSH_KEY_PATH} \
+                        ${EC2_USER}@${EC2_HOST} '
+
+                        docker pull ${FRONTEND_IMAGE}:latest
+                        docker pull ${BACKEND_IMAGE}:latest
+
+                        docker stop portfolio-frontend portfolio-backend portfolio-mongodb 2>/dev/null || true
+                        docker rm   portfolio-frontend portfolio-backend portfolio-mongodb 2>/dev/null || true
+
+                        docker network create portfolio-network 2>/dev/null || true
+
+                        docker run -d \
+                            --name portfolio-mongodb \
+                            --network portfolio-network \
+                            --restart unless-stopped \
+                            -v mongodb_data:/data/db \
+                            -e MONGO_INITDB_ROOT_USERNAME=admin \
+                            -e MONGO_INITDB_ROOT_PASSWORD=password123 \
+                            mongo:7
+
+                        sleep 10
+
+                        docker run -d \
+                            --name portfolio-backend \
+                            --network portfolio-network \
+                            --restart unless-stopped \
+                            -p 5000:5000 \
+                            -e NODE_ENV=production \
+                            -e PORT=5000 \
+                            -e MONGODB_URI=mongodb://admin:password123@portfolio-mongodb:27017/portfolio?authSource=admin \
+                            -e JWT_SECRET=portfolio-devops-jwt-secret-968138089440 \
+                            -e JWT_EXPIRE=7d \
+                            -e FRONTEND_URL=http://${EC2_PUBLIC_IP} \
+                            -e AWS_REGION=us-east-1 \
+                            -e AWS_S3_BUCKET=portfolio-devops-artifacts-968138089440 \
+                            ${BACKEND_IMAGE}:latest
+
+                        docker run -d \
+                            --name portfolio-frontend \
+                            --network portfolio-network \
+                            --restart unless-stopped \
+                            -p 3000:80 \
+                            ${FRONTEND_IMAGE}:latest
+
+                        echo "=== Running Containers ==="
+                        docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+                    '
+                """
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh """
+                    ssh -o StrictHostKeyChecking=no \
+                        -i ${SSH_KEY_PATH} \
+                        ${EC2_USER}@${EC2_HOST} '
+                        export KUBECONFIG=/home/ubuntu/.kube/config
+                        cd /opt/portfolio
+                        git pull origin main || true
+                        kubectl apply -f kubernetes/namespace.yaml  || true
+                        kubectl apply -f kubernetes/configmap.yaml  || true
+                        kubectl apply -f kubernetes/deployment.yaml || true
+                        kubectl apply -f kubernetes/service.yaml    || true
+                        kubectl apply -f kubernetes/hpa.yaml        || true
+                        echo "=== Kubernetes Pods ==="
+                        kubectl get pods -n portfolio || true
+                    '
+                """
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh """
+                    sleep 10
+                    curl -sf http://${EC2_PUBLIC_IP}:5000/api/health && echo " Backend OK" || echo " Backend not ready"
+                    curl -sf http://${EC2_PUBLIC_IP}:3000 -o /dev/null && echo " Frontend OK" || echo " Frontend not ready"
+                """
+            }
+        }
+
+        stage('Store Build Info in S3') {
+            steps {
+                sh """
+                    echo '{"build":"${BUILD_NUMBER}","ec2":"${EC2_PUBLIC_IP}","portfolio":"http://${EC2_PUBLIC_IP}:3000","api":"http://${EC2_PUBLIC_IP}:5000","jenkins":"http://${EC2_PUBLIC_IP}:8080","grafana":"http://${EC2_PUBLIC_IP}:3001"}' > build-info.json
+                    aws s3 cp build-info.json s3://portfolio-devops-artifacts-968138089440/builds/build-${BUILD_NUMBER}.json --region ${AWS_REGION} || echo "S3 skipped"
+                    aws s3 cp build-info.json s3://portfolio-devops-artifacts-968138089440/builds/latest.json --region ${AWS_REGION} || echo "S3 skipped"
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo """
+=== DEPLOYMENT SUCCESSFUL - Build #${BUILD_NUMBER} ===
+  Portfolio:  http://${EC2_PUBLIC_IP}:3000
+  API:        http://${EC2_PUBLIC_IP}:5000/api/health
+  Jenkins:    http://${EC2_PUBLIC_IP}:8080
+  Grafana:    http://${EC2_PUBLIC_IP}:3001  (admin/admin123)
+  Prometheus: http://${EC2_PUBLIC_IP}:9090
+            """
+        }
+        failure {
+            echo '=== PIPELINE FAILED ==='
+        }
+        always {
+            sh """
+                docker rmi ${FRONTEND_IMAGE}:${IMAGE_TAG} || true
+                docker rmi ${BACKEND_IMAGE}:${IMAGE_TAG} || true
+            """
+            cleanWs()
+        }
+    }
+}

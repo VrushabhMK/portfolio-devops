@@ -26,40 +26,7 @@ module "ec2" {
   user_data          = file("${path.module}/user-data.sh")
 }
 
-# S3 bucket for build artifacts, Terraform state, and resume uploads
-resource "aws_s3_bucket" "artifacts" {
-  bucket        = "portfolio-devops-artifacts-968138089440"
-  force_destroy = false
-
-  tags = {
-    Name    = "portfolio-devops-artifacts"
-    Purpose = "CI/CD artifacts, Terraform state, resume uploads"
-  }
-}
-
-resource "aws_s3_bucket_versioning" "artifacts" {
-  bucket = aws_s3_bucket.artifacts.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "artifacts" {
-  bucket = aws_s3_bucket.artifacts.id
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "artifacts" {
-  bucket                  = aws_s3_bucket.artifacts.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
+# Storage resources (S3 removed - using MongoDB Atlas for uploads and local filesystem for builds)
 
 # Extra security group rules for app ports
 resource "aws_security_group_rule" "jenkins" {
@@ -121,10 +88,7 @@ output "ec2_public_ip" {
   description = "EC2 public IP - use this to access all services"
 }
 
-output "s3_bucket_name" {
-  value       = aws_s3_bucket.artifacts.bucket
-  description = "S3 bucket for artifacts and state"
-}
+# S3 output removed
 
 output "access_urls" {
   value = {

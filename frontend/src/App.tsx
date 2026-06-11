@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import About from './components/About'
@@ -11,13 +12,11 @@ import Contact from './components/Contact'
 import Footer from './components/Footer'
 import Loader from './components/Loader'
 
-function App() {
-  const [loading, setLoading] = useState(true)
+import Login from './pages/Login'
+import AdminDashboard from './pages/AdminDashboard'
+import ProtectedRoute from './components/ProtectedRoute'
 
-  if (loading) {
-    return <Loader onComplete={() => setLoading(false)} />
-  }
-
+function PortfolioMain() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
@@ -33,6 +32,24 @@ function App() {
       </main>
       <Footer />
     </div>
+  )
+}
+
+function App() {
+  const [loading, setLoading] = useState(true)
+
+  if (loading) {
+    return <Loader onComplete={() => setLoading(false)} />
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<PortfolioMain />} />
+      <Route path="/login" element={<Login />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/admin" element={<AdminDashboard />} />
+      </Route>
+    </Routes>
   )
 }
 

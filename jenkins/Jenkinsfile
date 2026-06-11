@@ -14,11 +14,11 @@ pipeline {
         GIT_REPO               = 'https://github.com/VrushabhMK/portfolio-devops.git'
         GIT_BRANCH             = 'main'
         K8S_NAMESPACE          = 'portfolio'
-        AWS_INSTANCE_ID        = 'i-00efc8195ddaca37a'
-        AWS_REGION             = 'us-east-1'
+        AWS_REGION             = 'ap-southeast-2'
         EC2_USER               = 'ubuntu'
         EC2_SSH_CREDENTIALS    = 'ec2-ssh-key'
         JWT_SECRET             = credentials('jwt-secret')
+        EC2_PUBLIC_IP          = '54.79.77.37'
     }
 
     triggers {
@@ -99,17 +99,7 @@ pipeline {
             }
         }
 
-        stage('Get EC2 Public IP') {
-            steps {
-                script {
-                    env.EC2_PUBLIC_IP = sh(
-                        script: "aws ec2 describe-instances --instance-ids ${AWS_INSTANCE_ID} --region ${AWS_REGION} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text",
-                        returnStdout: true
-                    ).trim()
-                    echo "EC2 Public IP: ${env.EC2_PUBLIC_IP}"
-                }
-            }
-        }
+        // Get EC2 Public IP removed (using static IP)
 
         stage('Deploy to EC2') {
             steps {
@@ -146,8 +136,6 @@ pipeline {
                                 -e JWT_SECRET="${JWT_SECRET}" \\
                                 -e JWT_EXPIRE=7d \\
                                 -e FRONTEND_URL="http://${EC2_PUBLIC_IP}" \\
-                                -e AWS_REGION=us-east-1 \\
-                                -e AWS_S3_BUCKET=portfolio-devops-artifacts-968138089440 \\
                                 ${BACKEND_IMAGE}:latest
 
                             docker run -d \\
@@ -205,7 +193,7 @@ pipeline {
             }
         }
 
-        stage('Store Build Info in S3') {
+        stage('Store Build Info locally on EC2') {
             steps {
                 sh """
                     cat > build-info.json << EOF
@@ -222,10 +210,15 @@ pipeline {
   "grafana_url": "http://${EC2_PUBLIC_IP}:3001"
 }
 EOF
-                    aws s3 cp build-info.json s3://portfolio-devops-artifacts-968138089440/builds/build-${BUILD_NUMBER}.json --region ${AWS_REGION}
-                    aws s3 cp build-info.json s3://portfolio-devops-artifacts-968138089440/builds/latest.json --region ${AWS_REGION}
-                    echo "Build info stored in S3"
                 """
+                sshagent(credentials: ["${EC2_SSH_CREDENTIALS}"]) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_PUBLIC_IP} 'mkdir -p /opt/portfolio/builds'
+                        scp -o StrictHostKeyChecking=no build-info.json ${EC2_USER}@${EC2_PUBLIC_IP}:/opt/portfolio/builds/build-${BUILD_NUMBER}.json
+                        scp -o StrictHostKeyChecking=no build-info.json ${EC2_USER}@${EC2_PUBLIC_IP}:/opt/portfolio/builds/latest.json
+                        echo "Build info stored locally on EC2"
+                    """
+                }
             }
         }
     }
@@ -239,7 +232,7 @@ EOF
   Jenkins:    http://${EC2_PUBLIC_IP}:8080
   Grafana:    http://${EC2_PUBLIC_IP}:3001
   Prometheus: http://${EC2_PUBLIC_IP}:9090
-  S3 Builds:  s3://portfolio-devops-artifacts-968138089440/builds/
+  EC2 Builds: /opt/portfolio/builds/
             """
         }
         failure {

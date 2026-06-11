@@ -12,6 +12,4 @@ docker_hub_password: "{{ lookup('env', 'DOCKER_HUB_PASSWORD') }}"
 app_dir: /opt/portfolio
 repo_url: "https://github.com/VrushabhMK/portfolio-devops.git"
 
-aws_region: "us-east-1"
-aws_account_id: "968138089440"
-s3_bucket: "portfolio-devops-artifacts-968138089440"
+aws_region: "ap-southeast-2"
