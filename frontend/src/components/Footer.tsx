@@ -73,7 +73,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="mt-8 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} Arjun Sharma. All rights reserved.
+            &copy; {new Date().getFullYear()} Vrushabh Kumatgi. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground flex items-center gap-1">
             Built with <Heart className="h-3 w-3 text-destructive" /> using React & DevOps
