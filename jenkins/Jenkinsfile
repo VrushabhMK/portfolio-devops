@@ -158,6 +158,16 @@ pipeline {
                 sshagent(credentials: ["${EC2_SSH_CREDENTIALS}"]) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_PUBLIC_IP} '
+                            if ! command -v kubectl &> /dev/null; then
+                                echo "=== KUBERNETES DEPLOYMENT SKIPPED ==="
+                                echo "kubectl command is not installed on the EC2 host."
+                                exit 0
+                            fi
+                            if [ ! -d "/opt/portfolio" ]; then
+                                echo "=== KUBERNETES DEPLOYMENT SKIPPED ==="
+                                echo "/opt/portfolio directory does not exist."
+                                exit 0
+                            fi
                             export KUBECONFIG=/home/ec2-user/.kube/config
                             cd /opt/portfolio
 
