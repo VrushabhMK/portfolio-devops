@@ -4,7 +4,7 @@ This guide explains how to connect your GitHub repository to Jenkins so every `g
 
 ## Prerequisites
 
-- Jenkins is running at `http://54.79.77.37/jenkins/` (via Nginx reverse proxy on port 80)
+- Jenkins is running at `http://3.24.101.251/jenkins/` (via Nginx reverse proxy on port 80)
 - GitHub repo: `https://github.com/VrushabhMK/portfolio-devops`
 - The **GitHub Integration Plugin** and **GitHub plugin** are installed in Jenkins
 
@@ -12,7 +12,7 @@ This guide explains how to connect your GitHub repository to Jenkins so every `g
 
 ## Step 1: Install Required Jenkins Plugins
 
-1. Open Jenkins at `http://54.79.77.37/jenkins/`
+1. Open Jenkins at `http://3.24.101.251/jenkins/`
 2. Go to **Manage Jenkins → Plugins → Available plugins**
 3. Search and install (if not already installed):
    - ✅ **GitHub plugin**
@@ -60,7 +60,7 @@ If Jenkins couldn't auto-create the hook, add it manually:
 1. Go to your GitHub repo: `https://github.com/VrushabhMK/portfolio-devops`
 2. Click **Settings → Webhooks → Add webhook**
 3. Set:
-   - **Payload URL:** `http://54.79.77.37/github-webhook/`
+   - **Payload URL:** `http://3.24.101.251/github-webhook/`
    - **Content type:** `application/json`
    - **Secret:** *(leave empty or add a secret string — store it in Jenkins as `github-webhook-secret`)*
    - **Which events?** Select **Just the push event**
@@ -90,7 +90,7 @@ Go to **Manage Jenkins → Credentials → (global)** and add:
    git push origin main
    ```
 2. In Jenkins, watch the `portfolio-devops` pipeline trigger automatically
-3. All stages should pass and the site will be live at `http://54.79.77.37`
+3. All stages should pass and the site will be live at `http://3.24.101.251`
 
 ---
 
@@ -98,13 +98,13 @@ Go to **Manage Jenkins → Credentials → (global)** and add:
 
 | URL | Purpose |
 |---|---|
-| `http://54.79.77.37/` | Portfolio Website |
-| `http://54.79.77.37/api/health` | Backend Health Check |
-| `http://54.79.77.37/jenkins/` | Jenkins CI/CD |
-| `http://54.79.77.37/github-webhook/` | GitHub Webhook Receiver |
-| `http://54.79.77.37/grafana/` | Grafana Monitoring |
-| `http://54.79.77.37/prometheus/` | Prometheus Metrics |
-| `http://54.79.77.37/cadvisor/` | cAdvisor Container Metrics |
+| `http://3.24.101.251/` | Portfolio Website |
+| `http://3.24.101.251/api/health` | Backend Health Check |
+| `http://3.24.101.251/jenkins/` | Jenkins CI/CD |
+| `http://3.24.101.251/github-webhook/` | GitHub Webhook Receiver |
+| `http://3.24.101.251/grafana/` | Grafana Monitoring |
+| `http://3.24.101.251/prometheus/` | Prometheus Metrics |
+| `http://3.24.101.251/cadvisor/` | cAdvisor Container Metrics |
 
 ---
 
