@@ -346,12 +346,12 @@ export default function DevOpsPipeline() {
             {[
               { name: 'Frontend', url: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? `http://${window.location.hostname}` : 'http://localhost:3000', desc: 'Portfolio Website' },
               { name: 'Backend API', url: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? `http://${window.location.hostname}/api/health` : 'http://localhost:5000/api/health', desc: 'API Health Check' },
-              { name: 'Prometheus', url: `http://${window.location.hostname}:9090`, desc: 'Metrics Dashboard' },
-              { name: 'Grafana', url: `http://${window.location.hostname}:3001`, desc: 'Monitoring (admin/admin123)' },
-              { name: 'Jenkins', url: `http://${window.location.hostname}:8080`, desc: 'CI/CD Pipeline' },
-              { name: 'cAdvisor', url: `http://${window.location.hostname}:8081`, desc: 'Container Metrics' },
+              { name: 'Prometheus', url: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? `http://${window.location.hostname}/prometheus` : `http://${window.location.hostname}:9090`, desc: 'Metrics Dashboard' },
+              { name: 'Grafana', url: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? `http://${window.location.hostname}/grafana` : `http://${window.location.hostname}:3001`, desc: 'Monitoring (admin/admin123)' },
+              { name: 'Jenkins', url: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? `http://${window.location.hostname}/jenkins` : `http://${window.location.hostname}:8080`, desc: 'CI/CD Pipeline' },
+              { name: 'cAdvisor', url: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? `http://${window.location.hostname}/cadvisor` : `http://${window.location.hostname}:8081`, desc: 'Container Metrics' },
               { name: 'MongoDB', url: `${window.location.hostname}:27017`, desc: 'Database' },
-              { name: 'Node Exporter', url: `http://${window.location.hostname}:9100`, desc: 'System Metrics' },
+              { name: 'Node Exporter', url: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? `http://${window.location.hostname}/node-exporter` : `http://${window.location.hostname}:9100/metrics`, desc: 'System Metrics (Raw)' },
             ].map(item => (
               <a
                 key={item.name}
