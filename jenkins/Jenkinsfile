@@ -6,7 +6,7 @@ pipeline {
 
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
-        DOCKER_HUB_USERNAME    = 'vrushabhm'
+        DOCKER_HUB_USERNAME    = 'vrushabh131204'
         IMAGE_PREFIX           = "${DOCKER_HUB_USERNAME}/portfolio"
         FRONTEND_IMAGE         = "${IMAGE_PREFIX}-frontend"
         BACKEND_IMAGE          = "${IMAGE_PREFIX}-backend"
@@ -15,7 +15,7 @@ pipeline {
         GIT_BRANCH             = 'main'
         K8S_NAMESPACE          = 'portfolio'
         AWS_REGION             = 'ap-southeast-2'
-        EC2_USER               = 'ubuntu'
+        EC2_USER               = 'ec2-user'
         EC2_SSH_CREDENTIALS    = 'ec2-ssh-key'
         JWT_SECRET             = credentials('jwt-secret')
         EC2_PUBLIC_IP          = '54.79.77.37'
@@ -158,7 +158,7 @@ pipeline {
                 sshagent(credentials: ["${EC2_SSH_CREDENTIALS}"]) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_PUBLIC_IP} '
-                            export KUBECONFIG=/home/ubuntu/.kube/config
+                            export KUBECONFIG=/home/ec2-user/.kube/config
                             cd /opt/portfolio
 
                             sed -i "s|vrushabhm/portfolio-frontend:.*|${FRONTEND_IMAGE}:${IMAGE_TAG}|g" kubernetes/deployment.yaml
@@ -186,9 +186,10 @@ pipeline {
         stage('Health Check') {
             steps {
                 sh """
-                    sleep 10
-                    curl -sf http://${EC2_PUBLIC_IP}:5000/api/health && echo "Backend OK" || echo "Backend health check failed"
-                    curl -sf http://${EC2_PUBLIC_IP}:3000       && echo "Frontend OK" || echo "Frontend health check failed"
+                    sleep 15
+                    curl -sf http://${EC2_PUBLIC_IP}/api/health && echo "Backend OK" || echo "Backend health check failed"
+                    curl -sf http://${EC2_PUBLIC_IP}/        && echo "Frontend OK" || echo "Frontend health check failed"
+                    curl -sf http://${EC2_PUBLIC_IP}/jenkins/ && echo "Jenkins OK" || echo "Jenkins not yet ready (first boot may take longer)"
                 """
             }
         }
@@ -204,10 +205,11 @@ pipeline {
   "frontend_image": "${FRONTEND_IMAGE}:${IMAGE_TAG}",
   "backend_image": "${BACKEND_IMAGE}:${IMAGE_TAG}",
   "ec2_ip": "${EC2_PUBLIC_IP}",
-  "portfolio_url": "http://${EC2_PUBLIC_IP}:3000",
-  "api_url": "http://${EC2_PUBLIC_IP}:5000",
-  "jenkins_url": "http://${EC2_PUBLIC_IP}:8080",
-  "grafana_url": "http://${EC2_PUBLIC_IP}:3001"
+  "portfolio_url": "http://${EC2_PUBLIC_IP}",
+  "api_url": "http://${EC2_PUBLIC_IP}/api",
+  "jenkins_url": "http://${EC2_PUBLIC_IP}/jenkins",
+  "grafana_url": "http://${EC2_PUBLIC_IP}/grafana",
+  "prometheus_url": "http://${EC2_PUBLIC_IP}/prometheus"
 }
 EOF
                 """
@@ -227,12 +229,14 @@ EOF
         success {
             echo """
 === DEPLOYMENT SUCCESSFUL - Build #${BUILD_NUMBER} ===
-  Portfolio:  http://${EC2_PUBLIC_IP}:3000
-  API:        http://${EC2_PUBLIC_IP}:5000/api/health
-  Jenkins:    http://${EC2_PUBLIC_IP}:8080
-  Grafana:    http://${EC2_PUBLIC_IP}:3001
-  Prometheus: http://${EC2_PUBLIC_IP}:9090
+  Portfolio:  http://${EC2_PUBLIC_IP}
+  API:        http://${EC2_PUBLIC_IP}/api/health
+  Jenkins:    http://${EC2_PUBLIC_IP}/jenkins
+  Grafana:    http://${EC2_PUBLIC_IP}/grafana
+  Prometheus: http://${EC2_PUBLIC_IP}/prometheus
+  cAdvisor:   http://${EC2_PUBLIC_IP}/cadvisor
   EC2 Builds: /opt/portfolio/builds/
+  Webhook:    http://${EC2_PUBLIC_IP}/github-webhook/
             """
         }
         failure {
