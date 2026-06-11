@@ -1,6 +1,16 @@
 {
   "annotations": {
-    "list": []
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
   },
   "description": "Portfolio DevOps Application Monitoring Dashboard",
   "editable": true,
@@ -11,42 +21,93 @@
   "liveNow": false,
   "panels": [
     {
-      "title": "CPU Usage",
+      "title": "🖥️ CPU Usage %",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "rate(process_cpu_seconds_total{job=\"portfolio-backend\"}[5m]) * 100",
-          "legendFormat": "Backend CPU %",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "(1 - avg(rate(node_cpu_seconds_total{mode=\"idle\",job=\"node-exporter\"}[2m]))) * 100",
+          "legendFormat": "EC2 CPU %",
           "refId": "A"
         },
         {
-          "expr": "rate(node_cpu_seconds_total{mode!=\"idle\"}[5m]) * 100",
-          "legendFormat": "System CPU %",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(process_cpu_seconds_total{job=\"portfolio-backend\"}[2m]) * 100",
+          "legendFormat": "Backend Process CPU %",
           "refId": "B"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 60 },
+              { "color": "red", "value": 85 }
+            ]
+          },
           "color": { "mode": "palette-classic" }
         }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
       }
     },
     {
-      "title": "Memory Usage",
+      "title": "🧠 Memory Usage",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "process_resident_memory_bytes{job=\"portfolio-backend\"} / 1024 / 1024",
-          "legendFormat": "Backend Memory (MB)",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "(1 - node_memory_MemAvailable_bytes{job=\"node-exporter\"} / node_memory_MemTotal_bytes{job=\"node-exporter\"}) * 100",
+          "legendFormat": "EC2 Memory Used %",
           "refId": "A"
         },
         {
-          "expr": "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100",
-          "legendFormat": "System Memory %",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "process_resident_memory_bytes{job=\"portfolio-backend\"} / 1024 / 1024",
+          "legendFormat": "Backend Memory (MB)",
           "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Backend Memory (MB)" },
+            "properties": [{ "id": "unit", "value": "decmbytes" }]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
+    },
+    {
+      "title": "🐳 Container Memory Usage (MB)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "container_memory_usage_bytes{name=~\"portfolio.*|nginx.*|prometheus.*|grafana.*|node.*\",name!=\"\"} / 1024 / 1024",
+          "legendFormat": "{{name}}",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
@@ -54,44 +115,175 @@
           "unit": "decmbytes",
           "color": { "mode": "palette-classic" }
         }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
       }
     },
     {
-      "title": "Container Health",
-      "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
-      "targets": [
-        {
-          "expr": "container_tasks_state{state=\"running\"}",
-          "legendFormat": "{{name}}",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "title": "HTTP Requests",
+      "title": "🌐 HTTP Requests Rate",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 6, "y": 8 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "rate(http_requests_total[5m])",
-          "legendFormat": "{{method}} {{status}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(http_requests_total{job=\"portfolio-backend\"}[2m])",
+          "legendFormat": "{{method}} {{route}} ({{status_code}})",
           "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(process_cpu_user_seconds_total{job=\"portfolio-backend\"}[2m])",
+          "legendFormat": "Backend CPU User Time",
+          "refId": "B"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
     },
     {
-      "title": "Pod Status",
-      "type": "table",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "title": "💾 Disk I/O",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "kube_pod_status_phase",
-          "format": "table",
-          "instant": true,
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(node_disk_read_bytes_total{job=\"node-exporter\"}[2m])",
+          "legendFormat": "{{device}} Read",
           "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(node_disk_written_bytes_total{job=\"node-exporter\"}[2m])",
+          "legendFormat": "{{device}} Write",
+          "refId": "B"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
+    },
+    {
+      "title": "🔌 Network Traffic",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(node_network_receive_bytes_total{job=\"node-exporter\",device!~\"lo|docker.*\"}[2m])",
+          "legendFormat": "{{device}} Receive",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(node_network_transmit_bytes_total{job=\"node-exporter\",device!~\"lo|docker.*\"}[2m])",
+          "legendFormat": "{{device}} Transmit",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
+    },
+    {
+      "title": "📊 EC2 System Stats",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "(1 - avg(rate(node_cpu_seconds_total{mode=\"idle\",job=\"node-exporter\"}[2m]))) * 100",
+          "legendFormat": "CPU %",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "(1 - node_memory_MemAvailable_bytes{job=\"node-exporter\"} / node_memory_MemTotal_bytes{job=\"node-exporter\"}) * 100",
+          "legendFormat": "Memory %",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "node_memory_MemTotal_bytes{job=\"node-exporter\"} / 1024 / 1024 / 1024",
+          "legendFormat": "Total RAM (GB)",
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "node_filesystem_avail_bytes{job=\"node-exporter\",mountpoint=\"/\",fstype!~\"tmpfs|devtmpfs\"} / 1024 / 1024 / 1024",
+          "legendFormat": "Free Disk (GB)",
+          "refId": "D"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "node_load1{job=\"node-exporter\"}",
+          "legendFormat": "Load Avg (1m)",
+          "refId": "E"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 60 },
+              { "color": "red", "value": 85 }
+            ]
+          },
+          "mappings": [],
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Total RAM (GB)" },
+            "properties": [{ "id": "unit", "value": "decgbytes" }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Free Disk (GB)" },
+            "properties": [{ "id": "unit", "value": "decgbytes" }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 2 }, { "color": "red", "value": 1 }] } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Load Avg (1m)" },
+            "properties": [{ "id": "unit", "value": "short" }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1.5 }, { "color": "red", "value": 3 }] } }]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area"
+      }
     }
   ],
   "refresh": "30s",
@@ -101,7 +293,8 @@
   "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
-  "timezone": "",
+  "timezone": "browser",
   "title": "Portfolio DevOps Monitoring",
-  "version": 1
+  "uid": "portfolio-devops-monitoring",
+  "version": 2
 }
