@@ -79,7 +79,7 @@ pipeline {
                             docker build \\
                                 -t ${BACKEND_IMAGE}:${IMAGE_TAG} \\
                                 -t ${BACKEND_IMAGE}:latest \\
-                                -f backend/Dockerfile ./backend
+                                -f backend/Dockerfile .
                         """
                     }
                 }
