@@ -106,6 +106,9 @@ sudo systemctl enable nginx
 
 echo "=== Starting Docker Compose Stack ==="
 cd /home/ec2-user/portfolio
+# Stop and remove existing standalone containers to avoid name conflicts
+docker stop portfolio-frontend portfolio-backend portfolio-mongodb 2>/dev/null || true
+docker rm portfolio-frontend portfolio-backend portfolio-mongodb 2>/dev/null || true
 # Build and start services in detached mode
 docker compose up -d --build
 
