@@ -344,23 +344,26 @@ export default function DevOpsPipeline() {
           </h3>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { name: 'Frontend', url: 'http://localhost:3000', desc: 'Portfolio Website' },
-              { name: 'Backend API', url: 'http://localhost:5000/api/health', desc: 'API Health Check' },
-              { name: 'Prometheus', url: 'http://localhost:9090', desc: 'Metrics Dashboard' },
-              { name: 'Grafana', url: 'http://localhost:3001', desc: 'Monitoring (admin/admin123)' },
-              { name: 'Jenkins', url: 'http://localhost:8080', desc: 'CI/CD Pipeline' },
-              { name: 'cAdvisor', url: 'http://localhost:8080', desc: 'Container Metrics' },
-              { name: 'MongoDB', url: 'localhost:27017', desc: 'Database' },
-              { name: 'Node Exporter', url: 'http://localhost:9100', desc: 'System Metrics' },
+              { name: 'Frontend', url: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? `http://${window.location.hostname}` : 'http://localhost:3000', desc: 'Portfolio Website' },
+              { name: 'Backend API', url: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? `http://${window.location.hostname}/api/health` : 'http://localhost:5000/api/health', desc: 'API Health Check' },
+              { name: 'Prometheus', url: `http://${window.location.hostname}:9090`, desc: 'Metrics Dashboard' },
+              { name: 'Grafana', url: `http://${window.location.hostname}:3001`, desc: 'Monitoring (admin/admin123)' },
+              { name: 'Jenkins', url: `http://${window.location.hostname}:8080`, desc: 'CI/CD Pipeline' },
+              { name: 'cAdvisor', url: `http://${window.location.hostname}:8081`, desc: 'Container Metrics' },
+              { name: 'MongoDB', url: `${window.location.hostname}:27017`, desc: 'Database' },
+              { name: 'Node Exporter', url: `http://${window.location.hostname}:9100`, desc: 'System Metrics' },
             ].map(item => (
-              <div
+              <a
                 key={item.name}
-                className="p-3 rounded-lg bg-muted/50 border border-border hover:border-primary/50 transition-colors"
+                href={item.url.startsWith('http') ? item.url : `http://${item.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 rounded-lg bg-muted/50 border border-border hover:border-primary/50 transition-all hover:-translate-y-1 block cursor-pointer group"
               >
-                <p className="text-sm font-semibold">{item.name}</p>
-                <code className="text-xs text-primary break-all">{item.url}</code>
+                <p className="text-sm font-semibold group-hover:text-primary transition-colors">{item.name}</p>
+                <code className="text-xs text-primary break-all group-hover:underline">{item.url}</code>
                 <p className="text-[10px] text-muted-foreground mt-1">{item.desc}</p>
-              </div>
+              </a>
             ))}
           </div>
         </div>
