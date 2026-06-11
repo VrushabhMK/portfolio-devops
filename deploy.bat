@@ -16,8 +16,8 @@ scp -i D:\ML\portfolio.pem -o StrictHostKeyChecking=no ../portfolio.zip ec2-user
 echo [3/4] Uploading start script to EC2...
 scp -i D:\ML\portfolio.pem -o StrictHostKeyChecking=no start-services.sh ec2-user@52.65.73.16:/tmp/start-services.sh
 
-echo [4/4] Extracting and starting Docker Compose containers on EC2...
-ssh -i D:\ML\portfolio.pem -o StrictHostKeyChecking=no ec2-user@52.65.73.16 "bash /tmp/start-services.sh"
+echo [4/4] Fixing line endings and starting services on EC2...
+ssh -i D:\ML\portfolio.pem -o StrictHostKeyChecking=no ec2-user@52.65.73.16 "sed -i 's/\r//' /tmp/start-services.sh && bash /tmp/start-services.sh"
 
 echo.
 echo ===================================================
