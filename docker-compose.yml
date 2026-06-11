@@ -125,7 +125,7 @@ services:
     ports:
       - "8081:8080"
     command:
-      - '-url_base=/cadvisor'
+      - '-url_base_prefix=/cadvisor'
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
