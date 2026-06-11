@@ -5,9 +5,10 @@ echo     AUTO DEPLOYING PORTFOLIO TO AWS EC2
 echo ===================================================
 echo.
 
-echo [1/4] Archiving codebase...
+echo [1/4] Archiving and pushing codebase...
 git add . 2>nul
 git commit -m "automated deployment push" 2>nul
+git push origin main
 git archive --format=zip HEAD -o ../portfolio.zip
 
 echo [2/4] Uploading archive to EC2 (3.24.101.251)...
