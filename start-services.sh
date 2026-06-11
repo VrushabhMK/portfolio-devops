@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PUBLIC_IP="54.79.77.37"
+PUBLIC_IP="52.65.73.16"
 echo "=== Installing Unzip & Nginx ==="
 sudo dnf install -y unzip nginx
 
