@@ -1,7 +1,7 @@
 services:
   # MongoDB Service
   mongodb:
-    image: mongo:7
+    image: mongo:7-slim
     container_name: portfolio-mongodb
     restart: unless-stopped
     ports:
