@@ -107,7 +107,7 @@ export default function Resume() {
                   const link = document.createElement('a')
                   link.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/resume/download`
                   link.target = '_blank'
-                  link.download = 'Arjun_Sharma_Resume.pdf'
+                  link.download = 'Vrushabh_Kumatgi_Resume.pdf'
                   link.click()
                 }}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-primary text-primary-foreground font-medium hover:shadow-glow transition-all duration-300 hover:scale-105"

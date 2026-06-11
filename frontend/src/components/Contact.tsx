@@ -27,7 +27,7 @@ export default function Contact() {
   }
 
   const contactInfo = [
-    { icon: Mail, label: 'Email', value: 'arjun.sharma@example.com', href: 'mailto:arjun.sharma@example.com' },
+    { icon: Mail, label: 'Email', value: 'vrushabhmk@gmail.com', href: 'mailto:vrushabhmk@gmail.com' },
     { icon: Phone, label: 'Phone', value: '+91 98765 43210', href: 'tel:+919876543210' },
     { icon: MapPin, label: 'Location', value: 'Bengaluru, India', href: '#' },
   ]
