@@ -26,7 +26,7 @@ export default function Hero() {
           </p>
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 leading-tight">
             Hi, I'm{' '}
-            <span className="text-gradient">Vrushabh Kumatgi </span>
+            <span className="text-gradient">VMK </span>
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
             I build scalable cloud-native applications and automate deployment pipelines.
