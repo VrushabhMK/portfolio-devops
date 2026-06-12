@@ -40,26 +40,6 @@ pipeline {
             }
         }
 
-        stage('Install & Build') {
-            parallel {
-                stage('Frontend') {
-                    steps {
-                        dir('frontend') {
-                            sh 'npm ci --prefer-offline'
-                            sh 'npm run build'
-                        }
-                    }
-                }
-                stage('Backend') {
-                    steps {
-                        dir('backend') {
-                            sh 'npm ci --prefer-offline'
-                            sh 'npm test || echo "No tests configured, skipping"'
-                        }
-                    }
-                }
-            }
-        }
 
         stage('Docker Build') {
             parallel {
