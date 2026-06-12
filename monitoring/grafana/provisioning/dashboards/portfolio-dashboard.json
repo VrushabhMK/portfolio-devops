@@ -1,17 +1,5 @@
 {
-  "annotations": {
-    "list": [
-      {
-        "builtIn": 1,
-        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
-        "enable": true,
-        "hide": true,
-        "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
-      }
-    ]
-  },
+  "annotations": { "list": [] },
   "description": "Portfolio DevOps Application Monitoring Dashboard",
   "editable": true,
   "fiscalYearStartMonth": 0,
@@ -24,18 +12,18 @@
       "title": "🖥️ CPU Usage %",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "(1 - avg(rate(node_cpu_seconds_total{mode=\"idle\",job=\"node-exporter\"}[2m]))) * 100",
           "legendFormat": "EC2 CPU %",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "rate(process_cpu_seconds_total{job=\"portfolio-backend\"}[2m]) * 100",
-          "legendFormat": "Backend Process CPU %",
+          "legendFormat": "Backend CPU %",
           "refId": "B"
         }
       ],
@@ -44,6 +32,7 @@
           "unit": "percent",
           "min": 0,
           "max": 100,
+          "color": { "mode": "palette-classic" },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -51,8 +40,7 @@
               { "color": "yellow", "value": 60 },
               { "color": "red", "value": 85 }
             ]
-          },
-          "color": { "mode": "palette-classic" }
+          }
         }
       },
       "options": {
@@ -64,16 +52,16 @@
       "title": "🧠 Memory Usage",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "(1 - node_memory_MemAvailable_bytes{job=\"node-exporter\"} / node_memory_MemTotal_bytes{job=\"node-exporter\"}) * 100",
           "legendFormat": "EC2 Memory Used %",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "process_resident_memory_bytes{job=\"portfolio-backend\"} / 1024 / 1024",
           "legendFormat": "Backend Memory (MB)",
           "refId": "B"
@@ -101,11 +89,11 @@
       "title": "🐳 Container Memory Usage (MB)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "container_memory_usage_bytes{name=~\"portfolio.*|nginx.*|prometheus.*|grafana.*|node.*\",name!=\"\"} / 1024 / 1024",
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+          "expr": "container_memory_usage_bytes{name!=\"\"} / 1024 / 1024",
           "legendFormat": "{{name}}",
           "refId": "A"
         }
@@ -125,16 +113,16 @@
       "title": "🌐 HTTP Requests Rate",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "rate(http_requests_total{job=\"portfolio-backend\"}[2m])",
           "legendFormat": "{{method}} {{route}} ({{status_code}})",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "rate(process_cpu_user_seconds_total{job=\"portfolio-backend\"}[2m])",
           "legendFormat": "Backend CPU User Time",
           "refId": "B"
@@ -155,16 +143,16 @@
       "title": "💾 Disk I/O",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "rate(node_disk_read_bytes_total{job=\"node-exporter\"}[2m])",
           "legendFormat": "{{device}} Read",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "rate(node_disk_written_bytes_total{job=\"node-exporter\"}[2m])",
           "legendFormat": "{{device}} Write",
           "refId": "B"
@@ -185,16 +173,16 @@
       "title": "🔌 Network Traffic",
       "type": "timeseries",
       "gridPos": { "h": 7, "w": 12, "x": 12, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "rate(node_network_receive_bytes_total{job=\"node-exporter\",device!~\"lo|docker.*\"}[2m])",
           "legendFormat": "{{device}} Receive",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "rate(node_network_transmit_bytes_total{job=\"node-exporter\",device!~\"lo|docker.*\"}[2m])",
           "legendFormat": "{{device}} Transmit",
           "refId": "B"
@@ -212,37 +200,37 @@
       }
     },
     {
-      "title": "📊 EC2 System Stats",
+      "title": "📊 EC2 Live Stats",
       "type": "stat",
       "gridPos": { "h": 5, "w": 24, "x": 0, "y": 23 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "(1 - avg(rate(node_cpu_seconds_total{mode=\"idle\",job=\"node-exporter\"}[2m]))) * 100",
           "legendFormat": "CPU %",
           "refId": "A"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "(1 - node_memory_MemAvailable_bytes{job=\"node-exporter\"} / node_memory_MemTotal_bytes{job=\"node-exporter\"}) * 100",
           "legendFormat": "Memory %",
           "refId": "B"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "node_memory_MemTotal_bytes{job=\"node-exporter\"} / 1024 / 1024 / 1024",
           "legendFormat": "Total RAM (GB)",
           "refId": "C"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "node_filesystem_avail_bytes{job=\"node-exporter\",mountpoint=\"/\",fstype!~\"tmpfs|devtmpfs\"} / 1024 / 1024 / 1024",
           "legendFormat": "Free Disk (GB)",
           "refId": "D"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "node_load1{job=\"node-exporter\"}",
           "legendFormat": "Load Avg (1m)",
           "refId": "E"
@@ -259,21 +247,29 @@
               { "color": "red", "value": 85 }
             ]
           },
-          "mappings": [],
           "unit": "percent"
         },
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "Total RAM (GB)" },
-            "properties": [{ "id": "unit", "value": "decgbytes" }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }]
+            "properties": [
+              { "id": "unit", "value": "decgbytes" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }
+            ]
           },
           {
             "matcher": { "id": "byName", "options": "Free Disk (GB)" },
-            "properties": [{ "id": "unit", "value": "decgbytes" }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 2 }, { "color": "red", "value": 1 }] } }]
+            "properties": [
+              { "id": "unit", "value": "decgbytes" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 2 }, { "color": "red", "value": 1 }] } }
+            ]
           },
           {
             "matcher": { "id": "byName", "options": "Load Avg (1m)" },
-            "properties": [{ "id": "unit", "value": "short" }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1.5 }, { "color": "red", "value": 3 }] } }]
+            "properties": [
+              { "id": "unit", "value": "short" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1.5 }, { "color": "red", "value": 3 }] } }
+            ]
           }
         ]
       },
@@ -296,5 +292,5 @@
   "timezone": "browser",
   "title": "Portfolio DevOps Monitoring",
   "uid": "portfolio-devops-monitoring",
-  "version": 2
+  "version": 3
 }
