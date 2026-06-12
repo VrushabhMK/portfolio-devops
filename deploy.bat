@@ -24,33 +24,40 @@ echo ===================================================
 echo.
 
 set /p run_manual="Do you want to run manual direct deployment too? (y/N): "
-if /i "%run_manual%"=="y" (
-    echo.
-    echo [Manual] Archiving repository...
-    git archive --format=zip HEAD -o ../portfolio.zip
+if /i "%run_manual%"=="y" goto RUN_MANUAL
+goto RUN_CICD
 
-    echo [Manual] Uploading archive to EC2 (3.24.101.251)...
-    scp -i D:\ML\portfolio.pem -o StrictHostKeyChecking=no ../portfolio.zip ec2-user@3.24.101.251:/home/ec2-user/portfolio.zip
+:RUN_MANUAL
+echo.
+echo [Manual] Archiving repository...
+git archive --format=zip HEAD -o ../portfolio.zip
 
-    echo [Manual] Uploading start script to EC2...
-    scp -i D:\ML\portfolio.pem -o StrictHostKeyChecking=no start-services.sh ec2-user@3.24.101.251:/tmp/start-services.sh
+echo [Manual] Uploading archive to EC2 at 3.24.101.251...
+scp -i D:\ML\portfolio.pem -o StrictHostKeyChecking=no ../portfolio.zip ec2-user@3.24.101.251:/home/ec2-user/portfolio.zip
 
-    echo [Manual] Fixing line endings and restarting services on EC2...
-    ssh -i D:\ML\portfolio.pem -o StrictHostKeyChecking=no ec2-user@3.24.101.251 "sed -i 's/\r//' /tmp/start-services.sh && bash /tmp/start-services.sh"
-    
-    echo.
-    echo ===================================================
-    echo DIRECT MANUAL DEPLOYMENT COMPLETE!
-    echo ===================================================
-) else (
-    echo.
-    echo ===================================================
-    echo CI/CD PIPELINE TRIGGERED SUCCESSFUL!
-    echo ===================================================
-    echo 1. Jenkins Build:   http://3.24.101.251/jenkins/job/portfolio-devops/
-    echo 2. Grafana Metrics: http://3.24.101.251/grafana/
-    echo 3. Live Site:        http://3.24.101.251
-    echo ===================================================
-)
+echo [Manual] Uploading start script to EC2...
+scp -i D:\ML\portfolio.pem -o StrictHostKeyChecking=no start-services.sh ec2-user@3.24.101.251:/tmp/start-services.sh
+
+echo [Manual] Fixing line endings and restarting services on EC2...
+ssh -i D:\ML\portfolio.pem -o StrictHostKeyChecking=no ec2-user@3.24.101.251 "sed -i 's/\r//' /tmp/start-services.sh && bash /tmp/start-services.sh"
+
+echo.
+echo ===================================================
+echo DIRECT MANUAL DEPLOYMENT COMPLETE!
+echo ===================================================
+goto END
+
+:RUN_CICD
+echo.
+echo ===================================================
+echo CI/CD PIPELINE TRIGGERED SUCCESSFUL!
+echo ===================================================
+echo 1. Jenkins Build:   http://3.24.101.251/jenkins/job/portfolio-devops/
+echo 2. Grafana Metrics: http://3.24.101.251/grafana/
+echo 3. Live Site:        http://3.24.101.251
+echo ===================================================
+goto END
+
+:END
 echo.
 pause
